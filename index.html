@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Seguimiento de Estudio - Ing. Civil</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f6f8;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #4a90e2;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+    main {
+      padding: 1rem;
+      max-width: 900px;
+      margin: auto;
+    }
+    .day-entry {
+      background: white;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .day-entry h3 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      color: #4a90e2;
+    }
+    .input-group {
+      margin-bottom: 0.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.2rem;
+      font-weight: 500;
+    }
+    input[type="number"], input[type="text"], select {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+    }
+    .materia-checkbox {
+      display: inline-block;
+      margin-right: 10px;
+    }
+    .materia-checkbox input {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Seguimiento de Estudio - Ingeniería Civil</h1>
+    <p>Agosto a Diciembre</p>
+  </header>
+  <main id="calendar"></main>
+
+  <script>
+    const materias = [
+      "Física 2",
+      "Sistemas de Representación",
+      "Módulo de Inglés",
+      "Economía",
+      "Probabilidad y Estadística",
+      "Análisis Matemático 2",
+      "Computación",
+      "Cálculo Numérico"
+    ];
+
+    const startDate = new Date('2025-08-01');
+    const endDate = new Date('2025-12-31');
+    const calendar = document.getElementById("calendar");
+
+    function formatDateKey(date) {
+      return date.toISOString().split('T')[0];
+    }
+
+    function loadData() {
+      return JSON.parse(localStorage.getItem("estudioData") || "{}");
+    }
+
+    function saveData(data) {
+      localStorage.setItem("estudioData", JSON.stringify(data));
+    }
+
+    function createDayEntry(date, savedData) {
+      const dateKey = formatDateKey(date);
+      const entry = document.createElement("div");
+      entry.className = "day-entry";
+
+      entry.innerHTML = `
+        <h3>${date.toLocaleDateString()}</h3>
+        <div class="input-group">
+          <label>Horas Estudiadas</label>
+          <input type="number" min="0" step="0.5" value="${savedData?.hours || ""}" data-key="${dateKey}" data-type="hours">
+        </div>
+        <div class="input-group">
+          <label>Tema Estudiado</label>
+          <input type="text" value="${savedData?.topic || ""}" data-key="${dateKey}" data-type="topic">
+        </div>
+        <div class="input-group">
+          <label>Materias</label>
+          <div class="materias-container">
+            ${materias.map(m => `
+              <label class="materia-checkbox">
+                <input type="checkbox" data-key="${dateKey}" data-type="materia" value="${m}" ${savedData?.materias?.includes(m) ? "checked" : ""}>
+                ${m}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      calendar.appendChild(entry);
+    }
+
+    function generateCalendar() {
+      const data = loadData();
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        createDayEntry(new Date(d), data[formatDateKey(d)]);
+      }
+
+      calendar.addEventListener("input", (e) => {
+        const key = e.target.dataset.key;
+        const type = e.target.dataset.type;
+        const allData = loadData();
+        const entry = allData[key] || { hours: "", topic: "", materias: [] };
+
+        if (type === "hours") {
+          entry.hours = e.target.value;
+        } else if (type === "topic") {
+          entry.topic = e.target.value;
+        }
+        allData[key] = entry;
+        saveData(allData);
+      });
+
+      calendar.addEventListener("change", (e) => {
+        if (e.target.type === "checkbox") {
+          const key = e.target.dataset.key;
+          const value = e.target.value;
+          const checked = e.target.checked;
+          const allData = loadData();
+          const entry = allData[key] || { hours: "", topic: "", materias: [] };
+
+          if (checked && !entry.materias.includes(value)) {
+            entry.materias.push(value);
+          } else if (!checked && entry.materias.includes(value)) {
+            entry.materias = entry.materias.filter(m => m !== value);
+          }
+
+          allData[key] = entry;
+          saveData(allData);
+        }
+      });
+    }
+
+    generateCalendar();
+  </script>
+</body>
+</html>
